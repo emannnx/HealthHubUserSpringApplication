@@ -3,12 +3,12 @@ package com.example.HealthHubUserSpringApplication.Controller;
 import com.example.HealthHubUserSpringApplication.Model.User;
 import com.example.HealthHubUserSpringApplication.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/home")
@@ -20,11 +20,15 @@ public class UserController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    // CREATE USER
+    // ✅ CREATE USER
     @PostMapping("/createuser")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().build(); // Username already exists
+        }
+
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // Email already exists
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -32,20 +36,47 @@ public class UserController {
         return ResponseEntity.ok(savedUser);
     }
 
-    // READ ALL USERS
+    // ✅ LOGIN USER
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginData) {
+        String email = loginData.get("email");
+        String password = loginData.get("password");
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+        }
+
+        User user = userOpt.get();
+        boolean passwordMatch = passwordEncoder.matches(password, user.getPassword());
+
+        if (!passwordMatch) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+        }
+
+        // Optionally return user data (excluding password)
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ✅ GET ALL USERS
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
-    // READ USER BY USERNAME
+    // ✅ GET USER BY USERNAME
     @GetMapping("/get/{username}")
     public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
         Optional<User> user = userRepository.findByUsername(username);
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // UPDATE USER
+    // ✅ UPDATE USER
     @PutMapping("/user/{username}")
     public ResponseEntity<User> updateUser(@PathVariable String username, @RequestBody User updatedUser) {
         Optional<User> optionalUser = userRepository.findByUsername(username);
@@ -71,7 +102,7 @@ public class UserController {
         return ResponseEntity.ok(savedUser);
     }
 
-    // DELETE USER BY USERNAME
+    // ✅ DELETE USER
     @DeleteMapping("/user/{username}")
     public ResponseEntity<Void> deleteUser(@PathVariable String username) {
         Optional<User> optionalUser = userRepository.findByUsername(username);
