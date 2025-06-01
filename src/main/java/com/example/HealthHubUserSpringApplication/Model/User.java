@@ -1,13 +1,18 @@
 package com.example.HealthHubUserSpringApplication.Model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
+@Table(name = "users")
 public class User implements UserDetails {
 
     @Id
@@ -20,38 +25,50 @@ public class User implements UserDetails {
             strategy = GenerationType.SEQUENCE,
             generator = "user_id_sequence"
     )
-    private int id;
+    private Long id;
 
+    @Column(nullable = false, unique = true)
     private String username;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false)
     private String password;
 
     private int age;
     private String gender;
-
     private int height; // in cm
     private double weight; // in kg
-    private double bmi;
-
+    private double bmi;   // Stored in DB
     private String bloodType;
     private String genotype;
     private int oxygenLevel;
 
     @ElementCollection
+    @CollectionTable(name = "user_medical_conditions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "medical_condition")
     private List<String> medicalConditions;
 
     private boolean familyMedicalHistory;
 
-    public User() {
-    }
+    @Column(length = 1000)
+    private String familyHistoryText; // only filled if familyMedicalHistory is true
 
-    public User(int id, String username, String password) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
-    }
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
-    public User(int id, String username, String email, String password, int age, String gender, int height, double weight, double bmi, String bloodType, String genotype, int oxygenLevel, List<String> medicalConditions, boolean familyMedicalHistory) {
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    // Constructors
+
+    public User() {}
+
+    public User(Long id, String username, String email, String password, int age, String gender,
+                int height, double weight, String bloodType, String genotype,
+                int oxygenLevel, List<String> medicalConditions, boolean familyMedicalHistory,
+                String familyHistoryText) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -60,82 +77,58 @@ public class User implements UserDetails {
         this.gender = gender;
         this.height = height;
         this.weight = weight;
-        this.bmi = bmi;
         this.bloodType = bloodType;
         this.genotype = genotype;
         this.oxygenLevel = oxygenLevel;
         this.medicalConditions = medicalConditions;
         this.familyMedicalHistory = familyMedicalHistory;
+        this.familyHistoryText = familyHistoryText;
+        updateBMI();
     }
 
     // Getters and Setters
 
-    public int getId() {
-        return id;
-    }
+    public Long getId() { return id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    public void setId(Long id) { this.id = id; }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
-    }
+    public String getUsername() { return username; }
 
-    public String getPassword() {
-        return password;
-    }
+    public void setUsername(String username) { this.username = username; }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    @Override
+    public String getPassword() { return password; }
 
-    public int getAge() {
-        return age;
-    }
+    public void setPassword(String password) { this.password = password; }
 
-    public void setAge(int age) {
-        this.age = age;
-    }
+    public String getEmail() { return email; }
 
-    public String getGender() {
-        return gender;
-    }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
+    public int getAge() { return age; }
 
-    public int getHeight() {
-        return height;
-    }
+    public void setAge(int age) { this.age = age; }
+
+    public String getGender() { return gender; }
+
+    public void setGender(String gender) { this.gender = gender; }
+
+    public int getHeight() { return height; }
 
     public void setHeight(int height) {
         this.height = height;
         updateBMI();
     }
 
-    public double getWeight() {
-        return weight;
-    }
+    public double getWeight() { return weight; }
 
     public void setWeight(double weight) {
         this.weight = weight;
         updateBMI();
     }
 
-    public double getBmi() {
-        return bmi;
-    }
+    public double getBmi() { return bmi; }
 
     private void updateBMI() {
         if (height > 0 && weight > 0) {
@@ -143,51 +136,50 @@ public class User implements UserDetails {
         }
     }
 
-    public String getBloodType() {
-        return bloodType;
+    public String getBloodType() { return bloodType; }
+
+    public void setBloodType(String bloodType) { this.bloodType = bloodType; }
+
+    public String getGenotype() { return genotype; }
+
+    public void setGenotype(String genotype) { this.genotype = genotype; }
+
+    public int getOxygenLevel() { return oxygenLevel; }
+
+    public void setOxygenLevel(int oxygenLevel) { this.oxygenLevel = oxygenLevel; }
+
+    public List<String> getMedicalConditions() { return medicalConditions; }
+
+    public void setMedicalConditions(List<String> medicalConditions) { this.medicalConditions = medicalConditions; }
+
+    public boolean isFamilyMedicalHistory() { return familyMedicalHistory; }
+
+    public void setFamilyMedicalHistory(boolean familyMedicalHistory) { this.familyMedicalHistory = familyMedicalHistory; }
+
+    public String getFamilyHistoryText() { return familyHistoryText; }
+
+    public void setFamilyHistoryText(String familyHistoryText) { this.familyHistoryText = familyHistoryText; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    // UserDetails methods
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.emptyList(); // You can enhance this for role-based access
     }
 
-    public void setBloodType(String bloodType) {
-        this.bloodType = bloodType;
-    }
+    @Override
+    public boolean isAccountNonExpired() { return true; }
 
-    public String getGenotype() {
-        return genotype;
-    }
+    @Override
+    public boolean isAccountNonLocked() { return true; }
 
-    public void setGenotype(String genotype) {
-        this.genotype = genotype;
-    }
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
 
-    public int getOxygenLevel() {
-        return oxygenLevel;
-    }
-
-    public void setOxygenLevel(int oxygenLevel) {
-        this.oxygenLevel = oxygenLevel;
-    }
-
-    public List<String> getMedicalConditions() {
-        return medicalConditions;
-    }
-
-    public void setMedicalConditions(List<String> medicalConditions) {
-        this.medicalConditions = medicalConditions;
-    }
-
-    public boolean isFamilyMedicalHistory() {
-        return familyMedicalHistory;
-    }
-
-    public void setFamilyMedicalHistory(boolean familyMedicalHistory) {
-        this.familyMedicalHistory = familyMedicalHistory;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    @Override
+    public boolean isEnabled() { return true; }
 }
